@@ -1,19 +1,18 @@
-from typing import Annotated, Generator
+from typing import Annotated, Generator, AsyncGenerator
 
 from fastapi import Depends
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
 
-DATABASE_URL = "mysql+pymysql://root:root123@localhost:3306/basic?charset=utf8mb4"
+SYNC_DATABASE_URL = "mysql+pymysql://root:root123@localhost:3306/basic?charset=utf8mb4"
+ASYNC_DATABASE_URL = "mysql+aiomysql://root:root123@localhost:3306/basic?charset=utf8mb4"
 
-engine = create_engine(
-    DATABASE_URL,
-    echo=True,
-)
+sync_engine = create_engine(SYNC_DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(bind=sync_engine, autoflush=True, autocommit=False)
 
-SessionLocal = sessionmaker(
-    bind=engine,
-)
+async_engine = create_async_engine(ASYNC_DATABASE_URL, echo=True)
+AsyncSessionLocal = async_sessionmaker(bind=async_engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
@@ -28,4 +27,13 @@ def get_db() -> Generator[Session, None]:
             session.close()
 
 
+async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
+
+
 DbSessionDep = Annotated[Session, Depends(get_db)]
+AsyncDbSessionDep = Annotated[AsyncSessionLocal, Depends(get_async_db)]
