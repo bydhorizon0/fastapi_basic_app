@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, DateTime, func, String, Text, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy import Integer, DateTime, func, String, Text, ForeignKey, select
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates, column_property
 
 from database import Base
-
-
-if TYPE_CHECKING:
-    from domain.account.models import User
+from domain.account.models import User
 
 
 class BaseEntity(Base):
@@ -64,3 +60,17 @@ class Comment(BaseEntity):
         if not value or not value.strip():
             raise ValueError(f"{key} cannot be blank")
         return value
+
+
+Post.user_email = column_property(
+    select(User.email).where(User.id == Post.user_id).correlate_except(User).scalar_subquery()
+)
+
+# Post 클래스가 정의되는 시점에 아직 Comment 클래스가 존재하지 않기 때문에 NameError 또는 Unresolved reference가 발생한다.
+# 파이썬은 코드를 위에서 아래로 읽음.
+Post.comment_count = column_property(
+    select(func.count(Comment.id))
+    .where(Comment.post_id == Post.id)
+    .correlate_except(Comment)  # 성능 및 정확성을 위한 최적화
+    .scalar_subquery()
+)

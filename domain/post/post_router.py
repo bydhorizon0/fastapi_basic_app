@@ -1,0 +1,24 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
+
+from database import AsyncDbSessionDep, DbSessionDep
+from domain.core.utils import get_current_user
+from domain.post import post_service
+from domain.post.schemas import PostCreateRequest, PostDetailResponse, PostResponse
+
+router = APIRouter(prefix="/api/posts")
+
+
+@router.get("/", status_code=status.HTTP_200_OK, response_model=list[PostResponse])
+async def posts(adb: AsyncDbSessionDep):
+    return await post_service.get_posts(adb)
+
+
+@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=PostDetailResponse)
+def create(
+    db: DbSessionDep,
+    body: PostCreateRequest,
+    current_user_email: Annotated[str, Depends(get_current_user)],
+):
+    return post_service.create_post(db, body, current_user_email)
