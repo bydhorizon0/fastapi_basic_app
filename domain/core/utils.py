@@ -1,6 +1,9 @@
 from datetime import timedelta, datetime, timezone
+from tokenize import TokenError
+from typing import Annotated
 
 import jwt
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 
@@ -31,3 +34,24 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
         to_encode, get_settings().secret_key, algorithm=get_settings().algorithm
     )
     return encoded_jwt
+
+
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        payload = jwt.decode(
+            token, get_settings().secret_key, algorithms=[get_settings().algorithm]
+        )
+
+        email: str | None = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+
+        return email
+    except TokenError:
+        raise credentials_exception
