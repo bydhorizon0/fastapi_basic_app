@@ -7,12 +7,24 @@ from sqlalchemy.orm import selectinload, Session
 from domain.post.models import Post
 
 
+async def get_post(adb: AsyncSession, post_id: int) -> Post | None:
+    result = await adb.execute(
+        select(Post)
+        .where(Post.id == post_id)
+        .options(
+            selectinload(Post.user)
+        )
+    )
+
+    return result.scalar_one_or_none()
+
+
 async def get_all_posts(adb: AsyncSession) -> list[Post]:
     # user 정보를 미리 로드 (Eager Loading), N+1 방지
     result = await adb.execute(
         select(Post)
         .options(
-            selectinload(Post.user),
+            selectinload(Post.user)
         )
         .order_by(Post.created_at.desc())
     )

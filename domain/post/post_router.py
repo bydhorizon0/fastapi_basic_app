@@ -15,6 +15,11 @@ async def posts(adb: AsyncDbSessionDep):
     return await post_service.get_posts(adb)
 
 
+@router.get("/{post_id}", status_code=status.HTTP_202_ACCEPTED, response_model=PostDetailResponse)
+async def post(adb: AsyncDbSessionDep, post_id: int):
+    return await post_service.get_post(adb, post_id)
+
+
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=PostDetailResponse)
 def create(
     db: DbSessionDep,

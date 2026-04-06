@@ -5,8 +5,18 @@ from domain.account import account_repository
 from domain.account.exceptions import UserNotFoundError
 from domain.account.models import User
 from domain.post import post_repository
+from domain.post.exceptions import PostNotFoundError
 from domain.post.models import Post
 from domain.post.schemas import PostCreateRequest, PostDetailResponse, PostResponse
+
+
+async def get_post(adb: AsyncSession, post_id: int) -> PostDetailResponse:
+    post = await post_repository.get_post(adb, post_id)
+
+    if post is None:
+        raise PostNotFoundError()
+
+    return PostDetailResponse.model_validate(post)
 
 
 async def get_posts(adb: AsyncSession) -> list[PostResponse]:
