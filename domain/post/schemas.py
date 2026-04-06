@@ -8,6 +8,11 @@ class PostCreateRequest(BaseModel):
     content: str
 
 
+class PostUpdateRequest(BaseModel):
+    title: str | None = None
+    content: str | None = None
+
+
 class PostResponse(BaseModel):
     title: str
     content: str

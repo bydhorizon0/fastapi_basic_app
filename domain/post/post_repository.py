@@ -7,7 +7,7 @@ from sqlalchemy.orm import selectinload, Session
 from domain.post.models import Post
 
 
-async def get_post(adb: AsyncSession, post_id: int) -> Post | None:
+async def get_post_by_id(adb: AsyncSession, post_id: int) -> Post | None:
     result = await adb.execute(
         select(Post)
         .where(Post.id == post_id)
