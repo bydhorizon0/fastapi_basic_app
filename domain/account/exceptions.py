@@ -1,13 +1,16 @@
-from fastapi import HTTPException, status
+from fastapi import status
+
+from domain.core.exceptions import AuthException, BusinessException
 
 
-class UserAlreadyError(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="이미 존재하는 이메일입니다."
-        )
+class UserAlreadyError(BusinessException):
+    status_code = status.HTTP_409_CONFLICT
+    detail = "이미 존재하는 이메일입니다."
 
 
-class UserNotFoundError(HTTPException):
-    def __init__(self):
-        super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail="유저가 존재하지 않습니다.")
+class UserNotFoundError(AuthException):
+    detail = "계정을 찾을 수 없습니다."
+
+
+class LoginFailedError(AuthException):
+    detail = "아이디 또는 비밀번호가 일칯하지 않습니다."
