@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
 from domain.account import account_repository
 from domain.account.exceptions import UserNotFoundError
@@ -7,11 +6,16 @@ from domain.account.models import User
 from domain.post import post_repository
 from domain.post.exceptions import PostNotFoundError, PermissionDeniedError
 from domain.post.models import Post
-from domain.post.schemas import PostCreateRequest, PostDetailResponse, PostResponse, PostUpdateRequest
+from domain.post.schemas import (
+    PostCreateRequest,
+    PostDetailResponse,
+    PostResponse,
+    PostUpdateRequest,
+)
 
 
-async def get_post(adb: AsyncSession, post_id: int) -> PostDetailResponse:
-    post = await post_repository.get_post_by_id(adb, post_id)
+async def get_post(db: AsyncSession, post_id: int) -> PostDetailResponse:
+    post = await post_repository.get_post_by_id(db, post_id)
 
     if post is None:
         raise PostNotFoundError()
@@ -19,13 +23,15 @@ async def get_post(adb: AsyncSession, post_id: int) -> PostDetailResponse:
     return PostDetailResponse.model_validate(post)
 
 
-async def get_posts(adb: AsyncSession) -> list[PostResponse]:
-    posts: list[Post] = await post_repository.get_all_posts(adb)
+async def get_posts(db: AsyncSession) -> list[PostResponse]:
+    posts: list[Post] = await post_repository.get_all_posts(db)
     return [PostResponse.model_validate(post) for post in posts]
 
 
-def create_post(db: Session, request: PostCreateRequest, user_email: str) -> PostDetailResponse:
-    user: User | None = account_repository.get_user_by_email(db, user_email)
+async def create_post(
+    db: AsyncSession, request: PostCreateRequest, user_email: str
+) -> PostDetailResponse:
+    user: User | None = await account_repository.get_user_by_email(db, user_email)
     if user is None:
         raise UserNotFoundError()
 
@@ -33,20 +39,17 @@ def create_post(db: Session, request: PostCreateRequest, user_email: str) -> Pos
 
     # Transaction
     try:
-        post_repository.insert_post(db, post)
-        db.commit()
-        db.refresh(post)
+        await post_repository.insert_post(db, post)
+        await db.commit()
+        await db.refresh(post)
         return PostDetailResponse.model_validate(post)
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         raise e
 
 
 async def update_post(
-    adb: AsyncSession,
-    request: PostUpdateRequest,
-    post_id: int,
-    current_user_email: str
+    adb: AsyncSession, request: PostUpdateRequest, post_id: int, current_user_email: str
 ) -> PostDetailResponse:
     post = await post_repository.get_post_by_id(adb, post_id)
 
@@ -71,11 +74,7 @@ async def update_post(
     return PostDetailResponse.model_validate(post)
 
 
-async def delete_post(
-    adb: AsyncSession,
-    post_id: int,
-    current_user_email: str
-):
+async def delete_post(adb: AsyncSession, post_id: int, current_user_email: str):
     post = await post_repository.get_post_by_id(adb, post_id)
 
     if post is None:

@@ -1,9 +1,11 @@
+import asyncio
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import Connection
 from sqlalchemy import pool
 
 from alembic import context
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from database import Base
 
@@ -55,27 +57,33 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+def do_run_migrations(connection: Connection):
+    """실제 마이그레이션을 실행하는 동기 함수"""
+    context.configure(connection=connection, target_metadata=target_metadata)
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
+    with context.begin_transaction():
+        context.run_migrations()
 
-    """
-    connectable = engine_from_config(
+
+async def run_migrations_online() -> None:
+    """비동기 엔진을 생성하여 온라인 마이그레이션 생성"""
+
+    # 1. alembic.ini의 sqlalchemy.url이 mysql+aiomysql://... 인지 확인
+    connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+    async with connectable.connect() as connection:
+        # 2. run_sync를 통해 비동기 연결 상에서 동기 함수(do_run_migrations)를 호출한다.
+        await connection.run_sync(do_run_migrations)
 
-        with context.begin_transaction():
-            context.run_migrations()
+    await connectable.dispose()
 
 
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    # 3. 비동기 함수 실행을 위한 루프 처리
+    asyncio.run(run_migrations_online())

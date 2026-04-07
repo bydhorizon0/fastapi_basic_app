@@ -1,13 +1,13 @@
 from sqlalchemy import exists, select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.account.models import User
 
 
-def exists_email(db: Session, email: str) -> bool:
-    result: bool | None = db.scalar(select(exists().where(User.email == email)))
+async def exists_email(db: AsyncSession, email: str) -> bool:
+    result: bool | None = await db.scalar(select(exists().where(User.email == email)))
     return result if result is not None else False
 
 
-def get_user_by_email(db: Session, email: str) -> User | None:
-    return db.scalar(select(User).where(User.email == email))
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+    return await db.scalar(select(User).where(User.email == email))

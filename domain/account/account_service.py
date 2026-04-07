@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.account import account_repository
 from domain.account.exceptions import UserAlreadyError, UserNotFoundError
@@ -7,8 +7,8 @@ from domain.account.schemas import SignupRequest, LoginRequest, UserResponse
 from domain.core.utils import hash_password, verify_password
 
 
-def signup(db: Session, body: SignupRequest):
-    if account_repository.exists_email(db, body.email):
+async def signup(db: AsyncSession, body: SignupRequest):
+    if await account_repository.exists_email(db, body.email):
         raise UserAlreadyError()
 
     user = User(
@@ -17,11 +17,11 @@ def signup(db: Session, body: SignupRequest):
     )
 
     db.add(user)
-    db.commit()
+    await db.commit()
 
 
-def login(db: Session, body: LoginRequest):
-    user = account_repository.get_user_by_email(db, body.email)
+async def login(db: AsyncSession, body: LoginRequest):
+    user = await account_repository.get_user_by_email(db, body.email)
 
     if user is None:
         raise UserNotFoundError()
