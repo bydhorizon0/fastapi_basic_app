@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PostCreateRequest(BaseModel):
@@ -33,3 +33,12 @@ class PostDetailResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class PostListRequest(BaseModel):
+    page: int = Field(default=1, ge=1, description="페이지 번호 (1부터 시작)")
+    size: int = Field(default=10, ge=1, le=100, description="한 페이지당 노출 개수 (최대 100개)")
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.size

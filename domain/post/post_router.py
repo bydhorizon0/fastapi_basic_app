@@ -10,14 +10,15 @@ from domain.post.schemas import (
     PostDetailResponse,
     PostResponse,
     PostUpdateRequest,
+    PostListRequest,
 )
 
 router = APIRouter(prefix="/api/posts")
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[PostResponse])
-async def posts(db: AsyncDbSessionDep):
-    return await post_service.get_posts(db)
+async def posts(db: AsyncDbSessionDep, request: Annotated[PostListRequest, Depends()]):
+    return await post_service.get_posts(db, request)
 
 
 @router.get("/{post_id}", status_code=status.HTTP_202_ACCEPTED, response_model=PostDetailResponse)
