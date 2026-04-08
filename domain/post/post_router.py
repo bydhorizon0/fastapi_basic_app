@@ -8,15 +8,15 @@ from domain.post import post_service
 from domain.post.schemas import (
     PostCreateRequest,
     PostDetailResponse,
-    PostResponse,
     PostUpdateRequest,
     PostListRequest,
+    PostListResponse,
 )
 
 router = APIRouter(prefix="/api/posts")
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=list[PostResponse])
+@router.get("/", status_code=status.HTTP_200_OK, response_model=PostListResponse)
 async def posts(db: AsyncDbSessionDep, request: Annotated[PostListRequest, Depends()]):
     return await post_service.get_posts(db, request)
 

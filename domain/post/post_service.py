@@ -1,3 +1,6 @@
+from typing import Sequence
+
+from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.account import account_repository
@@ -11,7 +14,7 @@ from domain.post.schemas import (
     PostDetailResponse,
     PostResponse,
     PostUpdateRequest,
-    PostListRequest,
+    PostListRequest, PostListResponse,
 )
 
 
@@ -24,12 +27,24 @@ async def get_post(db: AsyncSession, post_id: int) -> PostDetailResponse:
     return PostDetailResponse.model_validate(post)
 
 
-async def get_posts(db: AsyncSession, request: PostListRequest) -> list[PostResponse]:
+async def get_posts(db: AsyncSession, request: PostListRequest) -> PostListResponse:
     # DB에서 필요한 데이터만 딕셔너리 형태로 가져옴
-    posts: list[dict] = await post_repository.get_all_posts(db, request.size, request.offset)
+    posts, total_count = await post_repository.get_all_posts(
+        db,
+        request.search_keyword,
+        request.search_type,
+        request.size,
+        request.offset,
+    )
 
     # Pydantic 모델로 변환 (필드 이름이 일치해야함)
-    return [PostResponse.model_validate(post) for post in posts]
+    # return [PostResponse.model_validate(post) for post in posts]
+    return PostListResponse(
+        items=[PostResponse.model_validate(post) for post in posts],
+        total_count=total_count,
+        page=request.page,
+        size=request.size
+    )
 
 
 async def create_post(
